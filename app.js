@@ -81,7 +81,7 @@ const state = {
   selectedIce: "微冰",
   selectedToppings: [],
   currentQty: 1,
-  scriptUrl: localStorage.getItem("gas_web_app_url") || ""
+  scriptUrl: "https://script.google.com/macros/s/AKfycbxakwajA3vM2_SKyABSOvUIeikTDPtJcjgcWY_7_9biK-Whqck7dysjeDVNXp1gN92B/exec"
 };
 
 // ==========================================
@@ -124,14 +124,6 @@ const DOM = {
   successCustomerPhone: document.getElementById("successCustomerPhone"),
   successTotalPrice: document.getElementById("successTotalPrice"),
   successOrderItems: document.getElementById("successOrderItems"),
-  // Settings Modal
-  settingsModal: document.getElementById("settingsModal"),
-  btnOpenSettings: document.getElementById("btnOpenSettings"),
-  btnCloseSettingsModal: document.getElementById("btnCloseSettingsModal"),
-  inputScriptUrl: document.getElementById("inputScriptUrl"),
-  btnSaveScriptUrl: document.getElementById("btnSaveScriptUrl"),
-  btnTestScriptUrl: document.getElementById("btnTestScriptUrl"),
-  apiStatusDot: document.getElementById("apiStatusDot"),
   toastContainer: document.getElementById("toastContainer")
 };
 
@@ -170,7 +162,6 @@ async function loadCSVData() {
   // 初始化畫面
   renderCategoryTabs();
   renderDrinks();
-  updateApiStatus();
 }
 
 function parseMenuCSV(text) {
@@ -597,13 +588,6 @@ async function submitOrder() {
     totalPrice: totalPrice
   };
 
-  // 檢查是否已設定 Google Apps Script Web App 網址
-  if (!state.scriptUrl) {
-    openSettingsModal();
-    showToast("請先設定 Google Apps Script Web App 網址以寫入試算表！", "error");
-    return;
-  }
-
   // 進入送出狀態
   setSubmitLoading(true);
 
@@ -635,10 +619,7 @@ async function submitOrder() {
 
   } catch (err) {
     console.error("訂單送出錯誤：", err);
-    // 友善提示與除錯選項
-    if (confirm(`傳送至 Google 試算表時發生錯誤：\n${err.message}\n\n是否需要開啟「連線設定」檢查部署網址與權限？`)) {
-      openSettingsModal();
-    }
+    showToast(`傳送至 Google 試算表時發生錯誤：${err.message}`, "error");
   } finally {
     setSubmitLoading(false);
   }
@@ -670,64 +651,6 @@ function openSuccessModal(orderId, timestamp, name, phone, totalPrice, itemsSumm
 
 function closeSuccessModal() {
   DOM.successModal.classList.remove("active");
-}
-
-// ==========================================
-// 設定視窗與 API 狀態
-// ==========================================
-function openSettingsModal() {
-  DOM.inputScriptUrl.value = state.scriptUrl;
-  DOM.settingsModal.classList.add("active");
-}
-
-function closeSettingsModal() {
-  DOM.settingsModal.classList.remove("active");
-}
-
-function saveScriptUrl() {
-  const url = DOM.inputScriptUrl.value.trim();
-  state.scriptUrl = url;
-  localStorage.setItem("gas_web_app_url", url);
-  updateApiStatus();
-  showToast("Google Apps Script 網址已儲存！", "success");
-  closeSettingsModal();
-}
-
-async function testScriptUrl() {
-  const url = DOM.inputScriptUrl.value.trim();
-  if (!url) {
-    showToast("請先輸入網址再進行測試！", "error");
-    return;
-  }
-
-  DOM.btnTestScriptUrl.disabled = true;
-  DOM.btnTestScriptUrl.textContent = "測試中...";
-
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.status === "online" || data.status === "success") {
-      showToast("連線成功！Google Apps Script 後端運作正常。", "success");
-    } else {
-      showToast("已收到回應，但狀態非預期：" + JSON.stringify(data), "info");
-    }
-  } catch (err) {
-    console.warn("GET 測試可能受限於網域重新導向，嘗試發送 POST 模擬...");
-    showToast("若無法直接 GET 存取，請確認部署權限是否設為「所有人 (Anyone)」。", "error");
-  } finally {
-    DOM.btnTestScriptUrl.disabled = false;
-    DOM.btnTestScriptUrl.textContent = "連線測試";
-  }
-}
-
-function updateApiStatus() {
-  if (state.scriptUrl && state.scriptUrl.startsWith("http")) {
-    DOM.apiStatusDot.classList.remove("warning");
-    DOM.apiStatusDot.title = "已設定 Google Apps Script Web App 網址";
-  } else {
-    DOM.apiStatusDot.classList.add("warning");
-    DOM.apiStatusDot.title = "尚未設定 Google Apps Script Web App 網址";
-  }
 }
 
 // ==========================================
@@ -814,21 +737,11 @@ function bindEvents() {
     if (e.target === DOM.successModal) closeSuccessModal();
   });
 
-  // 設定視窗開關
-  DOM.btnOpenSettings.addEventListener("click", openSettingsModal);
-  DOM.btnCloseSettingsModal.addEventListener("click", closeSettingsModal);
-  DOM.btnSaveScriptUrl.addEventListener("click", saveScriptUrl);
-  DOM.btnTestScriptUrl.addEventListener("click", testScriptUrl);
-  DOM.settingsModal.addEventListener("click", (e) => {
-    if (e.target === DOM.settingsModal) closeSettingsModal();
-  });
-
   // ESC 鍵關閉所有開啟的彈窗
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeCustomModal();
       closeSuccessModal();
-      closeSettingsModal();
     }
   });
 }

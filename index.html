@@ -18,10 +18,6 @@
         </div>
       </div>
       <div class="nav-actions">
-        <button id="btnOpenSettings" class="btn-settings" title="Google 試算表連線設定">
-          <span id="apiStatusDot" class="status-dot"></span>
-          <span>試算表連線設定</span>
-        </button>
       </div>
     </div>
   </header>
@@ -266,45 +262,7 @@
     </div>
   </div>
 
-  <!-- Google 試算表連線設定彈跳視窗 (Settings Modal) -->
-  <div class="modal-overlay" id="settingsModal">
-    <div class="modal-content" style="max-width: 580px;">
-      <div class="modal-header">
-        <h3 class="modal-title">⚙️ Google 試算表連線設定</h3>
-        <button class="btn-close-modal" id="btnCloseSettingsModal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="setup-guide-box">
-          <strong>📌 Google 試算表連結：</strong>
-          <div style="margin: 0.25rem 0;">
-            <a href="https://docs.google.com/spreadsheets/d/1m0ykuSQNeCm08oBL8FxlDivDP5-AERAap1DSwuS-XTs/edit?usp=sharing" target="_blank" style="color: var(--primary); word-break: break-all;">
-              https://docs.google.com/spreadsheets/d/1m0ykuSQNeCm08oBL8FxlDivDP5-AERAap1DSwuS-XTs/edit
-            </a>
-          </div>
-          <div style="margin-top: 0.5rem; font-weight: bold;">【簡單 3 步驟啟用後端寫入】：</div>
-          <ol>
-            <li>點開上方試算表，點選選單「<b>擴充功能</b>」->「<b>Apps Script</b>」。</li>
-            <li>將專案根目錄的 <code>google_apps_script.js</code> 程式碼整份貼入。</li>
-            <li>點擊右上角「<b>部署</b>」->「<b>新增部署作業</b>」-> 類型選「<b>網頁應用程式</b>」，存取權限選「<b>所有人 (Anyone)</b>」，點部署後將產生的「網頁應用程式網址」貼在下方！</li>
-          </ol>
-        </div>
 
-        <div class="form-group" style="margin-top: 0.5rem;">
-          <label for="inputScriptUrl" class="form-label">
-            Google Apps Script 網頁應用程式網址 (Web App URL)：
-          </label>
-          <input type="url" id="inputScriptUrl" class="form-input" placeholder="https://script.google.com/macros/s/.../exec">
-          <small style="color: var(--text-muted); font-size: 0.75rem;">設定會自動儲存於您的瀏覽器中，無須重新編譯代碼。</small>
-        </div>
-      </div>
-      <div class="modal-footer" style="justify-content: flex-end; gap: 0.5rem;">
-        <button class="btn-settings" id="btnTestScriptUrl" type="button">連線測試</button>
-        <button class="btn-submit-order" id="btnSaveScriptUrl" type="button" style="width: auto; padding: 0.5rem 1.25rem; margin-top: 0;">
-          儲存設定
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- 提示訊息 Toast 容器 -->
   <div class="toast-container" id="toastContainer"></div>
