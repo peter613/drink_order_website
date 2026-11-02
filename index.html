@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>線上訂單系統</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 頂部導覽列 -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <div class="brand-icon">🧋</div>
+        <div class="brand-text">
+          <h1>線上訂單系統</h1>
+        </div>
+      </div>
+      <div class="nav-actions">
+        <button id="btnOpenSettings" class="btn-settings" title="Google 試算表連線設定">
+          <span id="apiStatusDot" class="status-dot"></span>
+          <span>試算表連線設定</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主要訂購區域 -->
+  <main class="main-layout">
+    
+    <!-- 左側：顧客資訊與飲料選單 -->
+    <section class="menu-section">
+      
+      <!-- 顧客資料區塊 -->
+      <div class="card-box">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span>👤</span> 訂購人資料
+          </h2>
+          <small style="color: var(--text-muted); font-size: 0.8rem;">* 為必填欄位</small>
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="customerName" class="form-label">
+              姓名 <span class="required-tag">*</span>
+            </label>
+            <input type="text" id="customerName" class="form-input" placeholder="請輸入您的姓名 (例: 王小明)" required>
+          </div>
+
+          <div class="form-group">
+            <label for="customerPhone" class="form-label">
+              聯絡電話 <span class="required-tag">*</span>
+            </label>
+            <input type="tel" id="customerPhone" class="form-input" placeholder="請輸入聯絡電話 (例: 0912345678)" required>
+          </div>
+
+          <div class="form-group full-col">
+            <label for="orderNote" class="form-label">
+              訂單備註 <span style="font-weight: normal; color: var(--text-muted);">(選填)</span>
+            </label>
+            <input type="text" id="orderNote" class="form-input" placeholder="例如: 自備環保杯、統編、預計取餐時間等">
+          </div>
+        </div>
+      </div>
+
+      <!-- 飲料菜單列表區塊 -->
+      <div class="card-box">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span>🍵</span> 飲品菜單
+          </h2>
+          <span id="menuCountBadge" style="font-size: 0.85rem; color: var(--text-muted);">載入中...</span>
+        </div>
+
+        <!-- 搜尋與分類篩選器 -->
+        <div class="menu-controls">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" class="search-input" placeholder="搜尋想喝的飲料品名 (例: 拿鐵、蕎麥、荔枝)...">
+          </div>
+          <div class="category-tabs" id="categoryTabs">
+            <button class="tab-btn active" data-category="ALL">全部飲品</button>
+            <!-- 分類標籤動態生成 -->
+          </div>
+        </div>
+
+        <!-- 飲料卡片網格 -->
+        <div class="drinks-grid" id="drinksGrid">
+          <!-- 飲品項目由 app.js 動態渲染 -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 右側：購物車與訂單合計 (Sticky) -->
+    <aside class="cart-sidebar">
+      <div class="card-box">
+        <div class="section-header">
+          <h2 class="section-title">
+            <span>🛒</span> 訂單明細
+          </h2>
+          <button id="btnClearCart" class="btn-settings" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; display: none;">
+            清空
+          </button>
+        </div>
+
+        <!-- 購物車清單列表 -->
+        <div class="cart-items-wrapper" id="cartItemsContainer">
+          <div class="cart-empty" id="cartEmptyState">
+            <div class="cart-empty-icon">🫙</div>
+            <p>購物車目前是空的</p>
+            <p style="font-size: 0.8rem; margin-top: 0.35rem;">請點選左側飲品客製加入訂單！</p>
+          </div>
+        </div>
+
+        <!-- 購物車金額統計與送出 -->
+        <div class="cart-summary">
+          <div class="summary-row">
+            <span>總杯數</span>
+            <span id="totalCupsText">0 杯</span>
+          </div>
+          <div class="summary-row summary-total">
+            <span>合計金額</span>
+            <span class="total-amount" id="totalPriceText">$0</span>
+          </div>
+
+          <button id="btnSubmitOrder" class="btn-submit-order" disabled>
+            <span>確認送出訂單</span>
+          </button>
+          
+          <div style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted); text-align: center;">
+            訂單將直接寫入 Google 試算表並產出專屬流水號
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- 客製化飲品彈跳視窗 (Customization Modal) -->
+  <div class="modal-overlay" id="customModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalDrinkTitle">飲品客製化選擇</h3>
+        <button class="btn-close-modal" id="btnCloseCustomModal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        
+        <!-- 容量 / 尺寸選擇 -->
+        <div class="option-group">
+          <div class="option-group-title">
+            <span>📏</span> 規格容量
+          </div>
+          <div class="option-chips" id="sizeOptionsContainer">
+            <!-- 動態生成中杯 / 大杯 -->
+          </div>
+        </div>
+
+        <!-- 甜度選擇 -->
+        <div class="option-group">
+          <div class="option-group-title">
+            <span>🍬</span> 甜度
+          </div>
+          <div class="option-chips" id="sugarOptionsContainer">
+            <!-- 正常糖, 少糖, 半糖, 微糖, 無糖 -->
+          </div>
+        </div>
+
+        <!-- 冰量選擇 -->
+        <div class="option-group">
+          <div class="option-group-title">
+            <span>🧊</span> 冰量
+          </div>
+          <div class="option-chips" id="iceOptionsContainer">
+            <!-- 正常冰, 少冰, 微冰, 去冰, 溫, 熱 -->
+          </div>
+        </div>
+
+        <!-- 加料選擇 (複選) -->
+        <div class="option-group">
+          <div class="option-group-title">
+            <span>✨</span> 加料專區 (可複選)
+          </div>
+          <div class="option-chips" id="toppingOptionsContainer">
+            <!-- 10元料、15元料 -->
+          </div>
+        </div>
+
+        <!-- 數量選擇 -->
+        <div class="option-group" style="display: flex; align-items: center; justify-content: space-between;">
+          <div class="option-group-title" style="margin-bottom: 0;">
+            <span>🔢</span> 購買數量
+          </div>
+          <div class="qty-stepper">
+            <button class="btn-stepper" id="btnQtyMinus" type="button">-</button>
+            <input type="text" id="inputItemQty" class="stepper-input" value="1" readonly>
+            <button class="btn-stepper" id="btnQtyPlus" type="button">+</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">單杯價格</div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: var(--accent-hover);" id="modalSubtotalPrice">$0</div>
+        </div>
+        <button class="btn-submit-order" id="btnConfirmAddToCart" style="width: auto; padding: 0.65rem 1.5rem; margin-top: 0;">
+          加入訂購單
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 訂單成功彈窗 (Success Modal) -->
+  <div class="modal-overlay" id="successModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">🎉 訂單已成功送出！</h3>
+        <button class="btn-close-modal" id="btnCloseSuccessModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="success-banner">
+          <div class="success-icon-anim">✓</div>
+          <h4 style="font-size: 1.15rem; color: var(--primary); margin-bottom: 0.25rem;">感謝您的訂購</h4>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">您的訂單已完整記錄至 Google 試算表！</p>
+        </div>
+
+        <div class="order-detail-card">
+          <div class="row">
+            <span class="label">訂單流水號 (主鍵)：</span>
+            <span class="val highlight" id="successOrderId">ORD-0000</span>
+          </div>
+          <div class="row">
+            <span class="label">下單時間：</span>
+            <span class="val" id="successTimestamp">--</span>
+          </div>
+          <div class="row">
+            <span class="label">訂購人姓名：</span>
+            <span class="val" id="successCustomerName">--</span>
+          </div>
+          <div class="row">
+            <span class="label">聯絡電話：</span>
+            <span class="val" id="successCustomerPhone">--</span>
+          </div>
+          <div class="row">
+            <span class="label">訂單總金額：</span>
+            <span class="val" style="color: var(--accent-hover); font-weight: 800;" id="successTotalPrice">$0</span>
+          </div>
+          <div style="border-top: 1px dashed var(--border); padding-top: 0.5rem; margin-top: 0.25rem;">
+            <span class="label" style="display: block; margin-bottom: 0.25rem;">訂單明細：</span>
+            <div id="successOrderItems" style="white-space: pre-line; font-size: 0.85rem; color: #4b5563; line-height: 1.5;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="gap: 0.5rem; justify-content: flex-end;">
+        <a id="btnViewSpreadsheet" href="https://docs.google.com/spreadsheets/d/1m0ykuSQNeCm08oBL8FxlDivDP5-AERAap1DSwuS-XTs/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn-settings" style="background: var(--primary-light); color: var(--primary); font-weight: 600;">
+          📊 前往查看試算表
+        </a>
+        <button class="btn-submit-order" id="btnResetOrder" style="width: auto; padding: 0.5rem 1.25rem; margin-top: 0;">
+          再點一單
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google 試算表連線設定彈跳視窗 (Settings Modal) -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-content" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ Google 試算表連線設定</h3>
+        <button class="btn-close-modal" id="btnCloseSettingsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="setup-guide-box">
+          <strong>📌 Google 試算表連結：</strong>
+          <div style="margin: 0.25rem 0;">
+            <a href="https://docs.google.com/spreadsheets/d/1m0ykuSQNeCm08oBL8FxlDivDP5-AERAap1DSwuS-XTs/edit?usp=sharing" target="_blank" style="color: var(--primary); word-break: break-all;">
+              https://docs.google.com/spreadsheets/d/1m0ykuSQNeCm08oBL8FxlDivDP5-AERAap1DSwuS-XTs/edit
+            </a>
+          </div>
+          <div style="margin-top: 0.5rem; font-weight: bold;">【簡單 3 步驟啟用後端寫入】：</div>
+          <ol>
+            <li>點開上方試算表，點選選單「<b>擴充功能</b>」->「<b>Apps Script</b>」。</li>
+            <li>將專案根目錄的 <code>google_apps_script.js</code> 程式碼整份貼入。</li>
+            <li>點擊右上角「<b>部署</b>」->「<b>新增部署作業</b>」-> 類型選「<b>網頁應用程式</b>」，存取權限選「<b>所有人 (Anyone)</b>」，點部署後將產生的「網頁應用程式網址」貼在下方！</li>
+          </ol>
+        </div>
+
+        <div class="form-group" style="margin-top: 0.5rem;">
+          <label for="inputScriptUrl" class="form-label">
+            Google Apps Script 網頁應用程式網址 (Web App URL)：
+          </label>
+          <input type="url" id="inputScriptUrl" class="form-input" placeholder="https://script.google.com/macros/s/.../exec">
+          <small style="color: var(--text-muted); font-size: 0.75rem;">設定會自動儲存於您的瀏覽器中，無須重新編譯代碼。</small>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: flex-end; gap: 0.5rem;">
+        <button class="btn-settings" id="btnTestScriptUrl" type="button">連線測試</button>
+        <button class="btn-submit-order" id="btnSaveScriptUrl" type="button" style="width: auto; padding: 0.5rem 1.25rem; margin-top: 0;">
+          儲存設定
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 提示訊息 Toast 容器 -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- 頁尾 -->
+  <footer class="footer">
+    <p>訂購資料將即時同步至 Google 試算表</p>
+    <p style="margin-top: 0.35rem; font-size: 0.75rem;">
+      <a href="https://docs.google.com/spreadsheets/d/1m0ykuSQNeCm08oBL8FxlDivDP5-AERAap1DSwuS-XTs/edit?usp=sharing" target="_blank">打開目標 Google 試算表</a>
+    </p>
+  </footer>
+
+  <!-- 應用程式邏輯 -->
+  <script src="app.js"></script>
+</body>
+</html>
