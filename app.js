@@ -68,10 +68,12 @@ const DEFAULT_CUSTOM_DATA = {
 // ==========================================
 // 應用程式狀態 (State)
 // ==========================================
+const INITIAL_CATEGORIES = Array.from(new Set(DEFAULT_MENU_DATA.map(item => item.category)));
+
 const state = {
-  menu: [],
+  menu: [...DEFAULT_MENU_DATA],
   customOptions: DEFAULT_CUSTOM_DATA,
-  categories: [],
+  categories: INITIAL_CATEGORIES,
   activeCategory: "ALL",
   searchKeyword: "",
   cart: [],
@@ -132,36 +134,42 @@ const DOM = {
 // ==========================================
 async function loadCSVData() {
   try {
-    // 嘗試透過 HTTP / HTTPS fetch 載入兩份 CSV
+    // 嘗試透過 HTTP / HTTPS fetch 載入兩份 CSV (在 GitHub Pages 等環境)
     const [menuRes, customRes] = await Promise.all([
       fetch("menu_data.csv"),
       fetch("cutomize.csv")
     ]);
 
     if (menuRes.ok && customRes.ok) {
-      const menuText = await menuRes.text();
-      const customText = await customRes.text();
-      state.menu = parseMenuCSV(menuText);
-      state.customOptions = parseCustomizeCSV(customText);
-    } else {
-      throw new Error("HTTP response was not ok, fallback to default data.");
+      let menuText = await menuRes.text();
+      let customText = await customRes.text();
+
+      // 去除 UTF-8 BOM 避免解析首行標頭欄位出錯
+      if (menuText.charCodeAt(0) === 0xFEFF) menuText = menuText.slice(1);
+      if (customText.charCodeAt(0) === 0xFEFF) customText = customText.slice(1);
+
+      const parsedMenu = parseMenuCSV(menuText);
+      const parsedCustom = parseCustomizeCSV(customText);
+
+      if (parsedMenu && parsedMenu.length > 0) {
+        state.menu = parsedMenu;
+        const catSet = new Set();
+        state.menu.forEach(item => {
+          if (item.category) catSet.add(item.category);
+        });
+        state.categories = Array.from(catSet);
+      }
+      if (parsedCustom) {
+        state.customOptions = parsedCustom;
+      }
+
+      // 以最新 CSV 更新畫面
+      renderCategoryTabs();
+      renderDrinks();
     }
   } catch (err) {
-    console.info("無法從本地 fetch CSV（可能為 file:// 協議開啟），改用內建完整資料表：", err.message);
-    state.menu = DEFAULT_MENU_DATA;
-    state.customOptions = DEFAULT_CUSTOM_DATA;
+    console.info("使用預設飲料資料庫運行：", err.message);
   }
-
-  // 提取飲料分類
-  const catSet = new Set();
-  state.menu.forEach(item => {
-    if (item.category) catSet.add(item.category);
-  });
-  state.categories = Array.from(catSet);
-
-  // 初始化畫面
-  renderCategoryTabs();
-  renderDrinks();
 }
 
 function parseMenuCSV(text) {
@@ -749,8 +757,16 @@ function bindEvents() {
 // ==========================================
 // 初始化應用
 // ==========================================
-document.addEventListener("DOMContentLoaded", () => {
+function init() {
   bindEvents();
-  loadCSVData();
+  renderCategoryTabs();
+  renderDrinks();
   renderCart();
-});
+  loadCSVData();
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
+} else {
+  init();
+}
